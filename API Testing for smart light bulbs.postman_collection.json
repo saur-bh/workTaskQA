@@ -1,0 +1,756 @@
+{
+	"info": {
+		"_postman_id": "50e8971d-275b-4dd6-8e92-17a39efc1997",
+		"name": "API Testing for smart light bulbs",
+		"description": "* You can list devices in your network\r\n* You can connect to a device to get its state (brightness, color, name, etc)\r\n* You can change the name, brightness and color of the device you're connected to\r\n* You need to disconnect from a device before you can connect to another device\r\n* Changes to a device are persistent over connect/disconnect events, but reset if you restart the server.",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"item": [
+		{
+			"name": "Positive",
+			"item": [
+				{
+					"name": "List all available devices",
+					"event": [
+						{
+							"listen": "prerequest",
+							"script": {
+								"exec": [
+									"pm.globals.set(\"URL\", \"http://localhost:8080\");"
+								],
+								"type": "text/javascript"
+							}
+						},
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"const schema = {\r",
+									"    \"type\": \"array\",\r",
+									"    \"properties\": {\r",
+									"        \"name\": { \"type\": \"string\" } ,\r",
+									"        \"ip\": { \"type\": \"string\" } ,\r",
+									"    }\r",
+									"};\r",
+									"\r",
+									"//validate the status code \r",
+									"pm.test(\"Status code is 200\", function () {\r",
+									"    pm.response.to.have.status(200);\r",
+									"});\r",
+									"\r",
+									"// List all available devices: GET `/devices`\r",
+									"    pm.test(\"Validate that JSON list is restuned with schema having name and ip\", () => {\r",
+									"    pm.response.to.have.jsonSchema(schema);\r",
+									"    });\r",
+									"\r",
+									"\r",
+									"//get the IP to connect \r",
+									"\r",
+									"pm.test(\"Get the first IP\", function () {\r",
+									"    var jsonData = pm.response.json();\r",
+									"\r",
+									"   var getIP = jsonData[0].ip\r",
+									"   console.log(getIP)\r",
+									"    if(getIP!=undefined){\r",
+									"        pm.globals.set(\"IP\", getIP);\r",
+									"    }\r",
+									"    \r",
+									"    \r",
+									"});\r",
+									"\r",
+									"\r",
+									"\r",
+									"\r",
+									""
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{URL}}/devices",
+							"host": [
+								"{{URL}}"
+							],
+							"path": [
+								"devices"
+							]
+						},
+						"description": "GET `/devices`:\r\n    - Returns a list of JSON objects, with `name` (the name of the device) and `ip` (the ip address)\r\n    - Example call: `curl localhost:8080/devices`\r\n    - Example response: `[{\"name\": \"bulb1\", \"ip\": \"192.168.100.10\"}, {\"name\": \"bulb2\", \"ip\": \"192.168.100.11\"}]`"
+					},
+					"response": []
+				},
+				{
+					"name": "Get State of connected Device",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"\r",
+									"const schema = {\r",
+									"    \"type\": \"object\",\r",
+									"    \"properties\": {\r",
+									"        \"name\": { \"type\": \"string\" } ,\r",
+									"        \"ip\": { \"type\": \"string\" } ,\r",
+									"        \"color\" : {\"type\" : \"string\"},\r",
+									"         \"brightness\" : {\"type\" : \"integer\"},\r",
+									"\r",
+									"    }\r",
+									"};\r",
+									"\r",
+									"// List all available devices: GET `/devices`\r",
+									"    pm.test(\"Validate that the state of connected devices havs json object \", () => {\r",
+									"    pm.response.to.have.jsonSchema(schema);\r",
+									"    });\r",
+									"\r",
+									""
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{URL}}/state",
+							"host": [
+								"{{URL}}"
+							],
+							"path": [
+								"state"
+							]
+						},
+						"description": "Get the state of a device: GET `/state`:\r\n    - Requires that you are connected to a device.\r\n    - Returns a JSON object with all information about that device:\r\n`name`, `ip`, `color` as hex code, e.g. `#ffffff` for white, `brightness` as a float value between 0 and 10\r\n    - Example call: `curl localhost:8080/state`\r\n    - Example response: `{\"name\": \"bulb1\", \"ip\": \"192.168.100.10\", \"color\": \"#ffffff\", \"brightness\": 10.0}`\r\n    - Example response when not connected to a device: `{\"success\": false}`"
+					},
+					"response": []
+				},
+				{
+					"name": "Disconnect from any conneted Device",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"\r",
+									"pm.test(\"Response to be false on successful diconnection \", function () {\r",
+									"    var jsonData = pm.response.json();\r",
+									"    pm.expect(jsonData.success).to.eql(true);\r",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [],
+						"url": {
+							"raw": "{{URL}}/disconnect",
+							"host": [
+								"{{URL}}"
+							],
+							"path": [
+								"disconnect"
+							]
+						},
+						"description": "Disconnect from any device: POST `/disconnect`:\r\n    - Example call: `curl -X POST localhost:8080/disconnect`\r\n    - Example response: `{\"success\": true}`"
+					},
+					"response": []
+				},
+				{
+					"name": "Connect to first device",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"\r",
+									"//test the status code \r",
+									"\r",
+									"pm.test(\"Successful POST request\", function () {\r",
+									"    pm.expect(pm.response.code).to.be.oneOf([200, 201]);\r",
+									"});\r",
+									"\r",
+									"\r",
+									"pm.test(\"Test with Successful message ie. true when connect to device\", function () {\r",
+									"    var jsonData = pm.response.json();\r",
+									"    console.log(jsonData.success);\r",
+									"     pm.expect(jsonData.success).to.eql(true);\r",
+									"});\r",
+									"\r",
+									"pm.test(\"Test with Successful message ie. false when trying to connect to device if already one device in connected\", function () {\r",
+									"    var jsonData = pm.response.json();\r",
+									"    console.log(jsonData.success);\r",
+									"     pm.expect(jsonData.success).to.not.eql(false);\r",
+									"});\r",
+									"\r",
+									"\r",
+									"\r",
+									""
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "formdata",
+							"formdata": [
+								{
+									"key": "ip",
+									"value": "{{IP}}",
+									"type": "text"
+								}
+							]
+						},
+						"url": {
+							"raw": "{{URL}}/connect",
+							"host": [
+								"{{URL}}"
+							],
+							"path": [
+								"connect"
+							]
+						},
+						"description": "Connect to a device: POST `/connect\r\n\r\n- Expects a parameter `ip` (string) - the ip address of the device\r\n    - Returns success boolean\r\n    - Example call: `curl localhost:8080/connect -X POST -d '{\"ip\":\"192.168.100.10\"}' -H \"Content-type:application/json\"`\r\n    - Example response: `{\"success\": true}`"
+					},
+					"response": []
+				},
+				{
+					"name": "Connect when already connected to device",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"\r",
+									"//test the status code \r",
+									"\r",
+									"pm.test(\"Successful POST request\", function () {\r",
+									"    pm.expect(pm.response.code).to.be.oneOf([200, 201]);\r",
+									"});\r",
+									"\r",
+									"\r",
+									"pm.test(\"Test with Successful message ie. false when connect to device and other device is connected.\", function () {\r",
+									"    var jsonData = pm.response.json();\r",
+									"    console.log(jsonData.success);\r",
+									"     pm.expect(jsonData.success).to.eql(false);\r",
+									"});\r",
+									"\r",
+									""
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "formdata",
+							"formdata": [
+								{
+									"key": "ip",
+									"value": "10.2.2.3.3",
+									"type": "text"
+								}
+							]
+						},
+						"url": {
+							"raw": "{{URL}}/connect",
+							"host": [
+								"{{URL}}"
+							],
+							"path": [
+								"connect"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Set the color of a device",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"const url = pm.globals.get('URL')\r",
+									"pm.globals.set('clr',0)\r",
+									"\r",
+									"pm.test(\"Status code is 200\", function () {\r",
+									"    pm.response.to.have.status(200);\r",
+									"});\r",
+									"\r",
+									"pm.test(\"Response to be true on successful change of color \", function () {\r",
+									"    var jsonData = pm.response.json();\r",
+									"    pm.expect(jsonData.success).to.eql(true);\r",
+									"});\r",
+									"\r",
+									"pm.sendRequest(url+\"/state\", function (err, response) {\r",
+									"    //console.log(response.json().brightness)\r",
+									"    pm.globals.set('clr',response.json().color)   \r",
+									"    pm.test(\"Verify that color changed to #336699 \", function () {\r",
+									"\r",
+									"   this.clr = pm.globals.get('clr')  \r",
+									"   console.log( this.clr)\r",
+									"   pm.expect(this.clr).to.eql('#336699');\r",
+									"});\r",
+									"});\r",
+									""
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\"color\":\"#336699\"}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{URL}}/color",
+							"host": [
+								"{{URL}}"
+							],
+							"path": [
+								"color"
+							]
+						},
+						"description": " - Requires that you are connected to a device.\r\n    - Expects a parameter `color` as hex code. e.g. `#00ff00` for red\r\n    - Example call: `curl localhost:8080/color -X POST -d '{\"color\":\"#336699\"}' -H \"Content-type:application/json\"`\r\n    - Example response: `{\"success\": true}`"
+					},
+					"response": []
+				},
+				{
+					"name": "Change name on disconnected device",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"const url = pm.globals.get('URL')\r",
+									"\r",
+									"pm.test(\"Status code is 200\", function () {\r",
+									"    pm.response.to.have.status(200);\r",
+									"});\r",
+									"\r",
+									"pm.test(\"Response to be true on successful change of name \", function () {\r",
+									"    var jsonData = pm.response.json();\r",
+									"    pm.expect(jsonData.success).to.eql(false);\r",
+									"});\r",
+									"\r",
+									""
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\"name\":\"foobar\"}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{URL}}/name",
+							"host": [
+								"{{URL}}"
+							],
+							"path": [
+								"name"
+							]
+						},
+						"description": "- Requires that you are connected to a device.\r\n    - Expects a parameter `name`\r\n    - Example call: `curl localhost:8080/name -X POST -d '{\"name\":\"foobar\"}' -H \"Content-type:application/json`\r\n    - Example response: `{\"success\": true}`"
+					},
+					"response": []
+				},
+				{
+					"name": "Set the brightness of a device",
+					"event": [
+						{
+							"listen": "prerequest",
+							"script": {
+								"exec": [
+									""
+								],
+								"type": "text/javascript"
+							}
+						},
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"const url = pm.globals.get('URL')\r",
+									"pm.globals.set('brt',0)\r",
+									"\r",
+									"pm.test(\"Status code is 200\", function () {\r",
+									"    pm.response.to.have.status(200);\r",
+									"});\r",
+									"\r",
+									"pm.test(\"Response to be true on successful change of brightness \", function () {\r",
+									"    var jsonData = pm.response.json();\r",
+									"    pm.expect(jsonData.success).to.eql(true);\r",
+									"});\r",
+									"\r",
+									"pm.sendRequest(url+\"/state\", function (err, response) {\r",
+									"    //console.log(response.json().brightness)\r",
+									"    pm.globals.set('brt',response.json().brightness)   \r",
+									"    pm.test(\"Verify that brightness changed 4 \", function () {\r",
+									"\r",
+									"   this.brt = pm.globals.get('brt')  \r",
+									"   console.log( this.br)\r",
+									"   pm.expect(this.brt).to.eql(4);\r",
+									"});\r",
+									"});\r",
+									"\r",
+									"\r",
+									""
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\"brightness\":4}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{URL}}/brightness",
+							"host": [
+								"{{URL}}"
+							],
+							"path": [
+								"brightness"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Disconnect from any device",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"\r",
+									"pm.test(\"Response to be false on successful diconnection \", function () {\r",
+									"    var jsonData = pm.response.json();\r",
+									"    pm.expect(jsonData.success).to.eql(true);\r",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [],
+						"url": {
+							"raw": "{{URL}}/disconnect",
+							"host": [
+								"{{URL}}"
+							],
+							"path": [
+								"disconnect"
+							]
+						},
+						"description": "Disconnect from any device: POST `/disconnect`:\r\n    - Example call: `curl -X POST localhost:8080/disconnect`\r\n    - Example response: `{\"success\": true}`"
+					},
+					"response": []
+				},
+				{
+					"name": "Get State of connected Device",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"\r",
+									"const schema = {\r",
+									"    \"type\": \"object\",\r",
+									"    \"properties\": {\r",
+									"        \"name\": { \"type\": \"string\" } ,\r",
+									"        \"ip\": { \"type\": \"string\" } ,\r",
+									"        \"color\" : {\"type\" : \"string\"},\r",
+									"         \"brightness\" : {\"type\" : \"integer\"},\r",
+									"\r",
+									"    }\r",
+									"};\r",
+									"\r",
+									"// List all available devices: GET `/devices`\r",
+									"    pm.test(\"Validate that the state of connected devices havs json object \", () => {\r",
+									"    pm.response.to.have.jsonSchema(schema);\r",
+									"    });\r",
+									"\r",
+									"\r",
+									"// disconnect from devices\r",
+									"\r",
+									"pm.test(\"Response to be false on successful diconnection \", function () {\r",
+									"    var jsonData = pm.response.json();\r",
+									"    pm.expect(jsonData.success).to.eql(false);\r",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{URL}}/state",
+							"host": [
+								"{{URL}}"
+							],
+							"path": [
+								"state"
+							]
+						},
+						"description": "Get the state of a device: GET `/state`:\r\n    - Requires that you are connected to a device.\r\n    - Returns a JSON object with all information about that device:\r\n`name`, `ip`, `color` as hex code, e.g. `#ffffff` for white, `brightness` as a float value between 0 and 10\r\n    - Example call: `curl localhost:8080/state`\r\n    - Example response: `{\"name\": \"bulb1\", \"ip\": \"192.168.100.10\", \"color\": \"#ffffff\", \"brightness\": 10.0}`\r\n    - Example response when not connected to a device: `{\"success\": false}`"
+					},
+					"response": []
+				},
+				{
+					"name": "Set the name of a device",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"const url = pm.globals.get('URL')\r",
+									"\r",
+									"pm.test(\"Status code is 200\", function () {\r",
+									"    pm.response.to.have.status(200);\r",
+									"});\r",
+									"\r",
+									"pm.test(\"Response to be true on successful change of name \", function () {\r",
+									"    var jsonData = pm.response.json();\r",
+									"    pm.expect(jsonData.success).to.eql(true);\r",
+									"});\r",
+									"\r",
+									""
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\"name\":\"foobar\"}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{URL}}/name",
+							"host": [
+								"{{URL}}"
+							],
+							"path": [
+								"name"
+							]
+						},
+						"description": "- Requires that you are connected to a device.\r\n    - Expects a parameter `name`\r\n    - Example call: `curl localhost:8080/name -X POST -d '{\"name\":\"foobar\"}' -H \"Content-type:application/json`\r\n    - Example response: `{\"success\": true}`"
+					},
+					"response": []
+				}
+			],
+			"description": "All the positive testCases"
+		},
+		{
+			"name": "Negative TestCase",
+			"item": [
+				{
+					"name": "Invalid Request to get Devices",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 404\", function () {\r",
+									"    pm.response.to.have.status(404);\r",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"protocolProfileBehavior": {
+						"disableBodyPruning": true
+					},
+					"request": {
+						"method": "GET",
+						"header": [],
+						"body": {
+							"mode": "formdata",
+							"formdata": []
+						},
+						"url": {
+							"raw": "{{URL}}/devicesw",
+							"host": [
+								"{{URL}}"
+							],
+							"path": [
+								"devicesw"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Invlaid VERB",
+					"event": [
+						{
+							"listen": "prerequest",
+							"script": {
+								"exec": [
+									"pm.globals.set(\"URL\", \"http://localhost:8080\");"
+								],
+								"type": "text/javascript"
+							}
+						},
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"const schema = {\r",
+									"    \"type\": \"array\",\r",
+									"    \"properties\": {\r",
+									"        \"name\": { \"type\": \"string\" } ,\r",
+									"        \"ip\": { \"type\": \"string\" } ,\r",
+									"    }\r",
+									"};\r",
+									"\r",
+									"//validate the status code \r",
+									"pm.test(\"Status code is 405\", function () {\r",
+									"    pm.response.to.have.status(405);\r",
+									"});\r",
+									""
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [],
+						"url": {
+							"raw": "{{URL}}/devices",
+							"host": [
+								"{{URL}}"
+							],
+							"path": [
+								"devices"
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Invalid request PayLoad should not throw 500",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"const url = pm.globals.get('URL')\r",
+							"\r",
+							"pm.test(\"Status code is 500\", function () {\r",
+							"    pm.response.to.have.status(500);\r",
+							"});\r",
+							"\r",
+							"\r",
+							""
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "POST",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "{\"ssssss\": 90898}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "{{URL}}/name",
+					"host": [
+						"{{URL}}"
+					],
+					"path": [
+						"name"
+					]
+				}
+			},
+			"response": []
+		}
+	],
+	"event": [
+		{
+			"listen": "prerequest",
+			"script": {
+				"type": "text/javascript",
+				"exec": [
+					"",
+					"//Configure global valiarble before running of the Script.",
+					"",
+					"pm.globals.set(\"URL\", \"http://localhost:8080\");",
+					"",
+					"",
+					""
+				]
+			}
+		},
+		{
+			"listen": "test",
+			"script": {
+				"type": "text/javascript",
+				"exec": [
+					""
+				]
+			}
+		}
+	]
+}
